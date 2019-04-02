@@ -1,8 +1,12 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
+using System.ServiceModel.Syndication;
+using System.IO;
+using System.Xml;
+using System.Text;
 
 namespace RequestBuffering.Controllers
 {
@@ -10,36 +14,37 @@ namespace RequestBuffering.Controllers
     [ApiController]
     public class ValuesController : ControllerBase
     {
-        // GET api/values
-        [HttpGet]
-        public ActionResult<IEnumerable<string>> Get()
-        {
-            return new string[] { "value1", "value2" };
-        }
-
-        // GET api/values/5
-        [HttpGet("{id}")]
-        public ActionResult<string> Get(int id)
-        {
-            return "value";
-        }
-
         // POST api/values
         [HttpPost]
-        public void Post([FromBody] string value)
+        public void Post([FromBody] SyndicationItem value)
         {
+            Console.WriteLine("POST CONTROLLER");
+            try {
+                Console.WriteLine("GOT VALUE: {0}", value.Title.Text);
+                var sink = new StringWriter();
+                value.SaveAsAtom10(GetSerializer(sink));
+                Console.WriteLine("GOT XML: {0}", sink.ToString());
+            } catch (Exception e) {
+                Console.WriteLine("CAUGHT EXCEPTION: {0}", e.Message);
+                throw e;
+            }
         }
 
-        // PUT api/values/5
-        [HttpPut("{id}")]
-        public void Put(int id, [FromBody] string value)
+        [HttpPut]
+        public void Put([FromBody] XmlElement value)
         {
+            Console.WriteLine("PUT CONTROLLER");
+            Console.WriteLine("GOT XML: {0}", value.OuterXml);
         }
 
-        // DELETE api/values/5
-        [HttpDelete("{id}")]
-        public void Delete(int id)
+        private XmlWriter GetSerializer(TextWriter sink)
         {
+            var xmlw = XmlWriter.Create(sink, new XmlWriterSettings {
+                Encoding = new UTF8Encoding(false),
+                Indent = true,
+                OmitXmlDeclaration = true
+            });
+            return xmlw;
         }
     }
 }
